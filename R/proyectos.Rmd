@@ -1,0 +1,14 @@
+---
+title: "Proyectos"
+author: "Anonymous"
+date: "02-03-2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Recursos
+
+https://intro2r.com/setting-up-a-project-in-rstudio.html
