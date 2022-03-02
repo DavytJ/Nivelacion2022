@@ -1,0 +1,233 @@
+---
+title: "AyudantiaR - Introducción"
+author: "Joselina Davyt-Colo"
+date: "2 de marzo de 2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introducción a Rmd:
+
+Este archivo ha sido generado con R Markdown, una herramienta muy potente.
+Si nunca has usado Rmd es posible que el sistema solicite que instales algunos paquetes para poder utilizar esta herramienta, hazle caso e instálalos (necesitas estar conectado a internet).
+
+## 1 - R y RStudio
+
+**R**: “es un lenguaje de programación interpretado, de distribución libre, bajo Licencia GNU, y se mantiene en un ambiente para el cómputo estadístico y gráfico. Este software corre en distintas plataformas Linux, Windows, MacOS, e incluso en PlayStation 3. El término ambiente pretende caracterizarlo como un sistema totalmente planificado y coherente, en lugar de una acumulación gradual de herramientas muy específicas y poco flexibles, como suele ser con otro software de análisis de datos. El hecho que R sea un lenguaje y un sistema, es porque forma parte de la filosofía de creación… Por esta razón, en lugar de pensar de R como un sistema estadístico, es preferible verlo como un ambiente en el que se aplican técnicas estadísticas.” (Santana, J. S., & Farfán, E. M. El arte de programar en R: un lenguaje para la estadística. https://cran.r-project.org/doc/contrib/Santana_El_arte_de_programar_en_R.pdf)
+
+**Rstudio**: es una herramienta IDE (Integrated Development Environment) para R, libre y gratuita que facilita: i) Trabajar con R y gráficos de R de forma interactiva; ii) Organizar el código y mantener múltiples proyectos; iii) Mantenimiento de los paquetes de R; iv) Crear y compartir informes; v) Compartir código y colaborar con otros usuarios.
+
+### Instalación
+
+R: cran.r-project.org
+
+Rstudio: www.rstudio.com/ide/download/desktop
+
+Rstudio Server para Debian/Ubuntu, RedHat/CentOS, and SUSE Linux https://www.rstudio.com/products/rstudio/#Server 
+
+### Como actualizar la versión de R desde Rstudio:
+
+Cómo saber que versión tengo?: version
+Paquete: installr
+Función: updateR()
+
+Previamente (vamos a verlo en profundidad)
+Como instalar paquetes:
+install.packages("installr")
+library(installr)
+https://blog.rstudio.com/tags/big-data
+
+```{r actualizar versión de R}
+version # para chequear la versión
+#installr::updateR() # si no tienes el paquete instálalo: install.packages("installr")
+```
+
+
+### Libros para aprender R
+
+https://picandoconr.wordpress.com/2017/01/15/libros-para-aprender-r/
+https://www.r-bloggers.com/lang/uncategorized/305 
+https://rparatodos.wordpress.com/2011/11/22/libros-de-r-gratuitos/ 
+
+### Comunidad R
+
+Algo sobre la comunidad R:
+
+- Redes sociales: #rstats
+    + https://twitter.com/_r_foundation
+    + R stars: https://twitter.com/hadleywickham
+    + Latinos: https://twitter.com/LatinR_Conf, 
+    + Grupos: R-Ladies 
+
+
+- Repositorios de código: 
+    + github
+
+- Dónde encontrar respuestas a problemas: https://stackoverflow.com/
+
+- Sitios que profundizan en paquetes y funciones
+    + https://www.r-bloggers.com/
+    + rpubs
+    
+## 2 - Paquetes
+
+* La instalación básica de R viene con múltiples funciones para la importación de datos, la realización de transformaciones, el ajuste y evaluación de modelos estadísticos, las representaciones gráficas.
+
+* La potencia de R deriva de su capacidad de incorporar en cualquier momento nuevas funciones capaces de realizar nuevas tareas.
+
+* Un paquete (package) es una colección de funciones, datos y código R que se almacenan en una carpeta conforme a una estructura bien definida, fácilmente accesible para R.
+
+* Cualquiera puede hacer un paquete en R (siguiendo ciertas reglas...)
+
+### Ver paquetes instalados
+
+Cuando instalamos R se incorporan por defecto numerosos paquetes. Podemos ver una lista de los paquetes que actualmente tenemos instalados en nuestro ordenador ejecutando:
+
+```{r, echo=FALSE, warning=FALSE}
+library()
+head(library())
+```
+
+Si observamos la imagen anterior veremos que en el listado de paquetes que presenta Rstudio, hay algunos que están marcados y otros que no. Sólo los paquetes marcados están actualmente cargados en memoria. El resto está simplemente guardado en algún directorio, sin que sus funciones estén aún disponibles para ser ejecutadas desde R. Podemos ver un listado completo de los paquetes actualmente cargados en memoria mediante:
+
+```{r}
+search()
+```
+
+```{r paquetes instalados}
+installed.packages() # todos los paquetes que tengo instalados
+```
+
+### Instalar y cargar paquetes
+
+* se puede instalar paquetes de forma individual mediante el siguiente comando:
+
+```{r}
+#install.packages("ggplot2", repos = 'http://cran.us.r-project.org') # el código está comentado para no reinstalar en el caso que ya esté instalado
+```
+
+* Instalar varios paquetes desde una función
+
+```{r, cache=TRUE}
+# listo los paquetes que voy a necesitar para determinado proyecto
+paquetes = c('xlsx' 
+             #, 'ggplot2', 'maptools', 'tmap', 'RCurl', 'rjson', 'jsonlite', 'WDI', #'countrycode', 'mapproj', 'XLConnect', 'lubridate', 'zoo', 'RODBC'
+             )
+
+# chequeo si los paquetes están ya instalados o no
+instalados <- paquetes %in% installed.packages()
+
+# si no están instalados los instalo y cargo en la memoria
+if (length(paquetes[!instalados]) > 0) {
+  install.packages(paquetes[!instalados], repos = 'http://cran.us.r-project.org')
+}
+
+lapply(paquetes, require, character.only = TRUE)
+```
+
+También podemos poner la función en un script y correr el script con la función source.
+
+* cargar paquetes
+
+```{r, cache=TRUE}
+library(ggplot2)
+require(ggplot2)
+```
+
+
+
+```{r instalar un paquete}
+# manera básica
+# install.packages("xlsx")
+
+# una manera más elegante
+#paquetes <- c("xlsx") # el paquete a instalar como un vector de string
+
+# install.packages(paquetes)
+# 
+# #¿paquete te tengo instalado?
+# paquetes %in% installed.packages() 
+# 
+# # Si estás instalado no te instalo y si no estás instalado si
+# if (length(paquetes[!instalados]) > 0) {
+#   install.packages(paquetes[!instalados])
+# }
+
+```
+
+
+## Directorio de trabajo y flujo de trabajo
+
+A fines de importar datos (y otros archivos), así como guardar resultados de trabajo (datos, imágenes, etc) es necesario indicar a R la ruta donde guardar u obtener dichos archivos.
+
+**Navegación**
+
+La función **getwd()** nos da el directorio de trabajo dónde la sesión actual se encuentra referenciada, allí se guardarán o tomarán archivos si no se indicase otra ruta. Es una función informativa.
+
+```{r obtener directorio de trabajo}
+getwd() #directorio actual o por default
+```
+
+**Cambiar el directorio de trabajo**
+
+Si queremos fijar el directorio de trabajo en una carpeta diferente a la que estamos ubicados actualmente (que lo vemos con getwd()) utilizamos la función setwd("directorio").
+
+En el siguiente ejemplo se setea el mismo directorio de trabajo.
+
+```{r fijar directorio de trabajo}
+setwd("C:/Users/Usuario/Documents/Nivelacion2022")
+```
+
+Si no sabes en qué directorio de trabajo te encuentras siempre recuerda escribir en la consola **getwd()**.
+
+Una manera más prolija y eficiente de trabajar en RStudio es utilizar la funcionalidad de proyectos, la cual permite estar siempre en el directorio del proyecto y organizar todos los scripts, documentos y datos vinculados al mismo en una carpeta que puede comprimirse, compartirse, subirse a la nube y/o seguir un control de versión.
+
+### Crear carpetas
+
+Supongamos que estamos trabajando en un proyecto y necesitamos guardar conjuntos de datos dentro del proyecto en una carpeta nueva. Con la función **dir.create("nombredelacarpeta")** es posible crear una carpeta nueva en el directorio de trabajo.
+
+Si queremos crear dicha carpeta dentro del directorio donde estamos parados podemos utilizar el **paquete here** y la **función here** del mismo.
+
+```{r crear directorio}
+# cargamos el paquete
+library(here)
+# creamos la carpeta datasets
+here::here(dir.create("datasets"))
+# creamos la carpeta "clase4"
+path <-paste0(here::here(), "/Clase4")
+dir.create(path)
+```
+
+## Otros elementos de inicio de sesión en R
+
+Listar los objetos en la actual sesión de trabajo:
+
+```{r}
+ls()
+```
+
+Remover objetos específicos
+
+```{r}
+a <- seq(1,10,0.1) #vector numérico secuencial de 1 a 10, de a 0.1 valores
+rm(a)
+ls()
+```
+
+Remover todos los objetos.
+
+```{r}
+rm(list = ls())
+```
+
+## Comentando tu código R
+
+Los comentarios son una excelente manera de dejar “migas de pan” que explican el uso de líneas simples o fragmentos de código. Los comentarios pueden estar en línea con el código R o en líneas separadas. Los comentarios comienzan con #; todo el texto a la derecha de # se ignora.
+
+usa comentarios para dejar migas de pan detrás de tu código
+pueden ser como líneas simples o múltiples sin código o ...

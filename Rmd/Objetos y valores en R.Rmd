@@ -1,0 +1,446 @@
+---
+title: "Objetos y valores en R"
+author: "Joselina Davyt-Colo"
+date: "06-03-2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Lenguaje orientado a objetos
+
+En R todo es un objeto, ¿qué implica?
+
+¿Qué objetos hay?
+
+¿Cómo los entendemos?
+
+Un objeto es una estructura de datos que tiene algunos atributos y métodos que actúan sobre sus atributos.
+
+## 1- Operadores
+
+Tomado de https://bookdown.org/jboscomendoza/r-principiantes4/operadores.html
+
+### Operadores relacionales
+
+- Indéntico (o exactamente igual): ==
+
+```{r}
+"a" == "b" # letras
+1 == 2/2 # números
+```
+
+- No es igual que: !=
+
+```{r}
+"a" != "b"
+1 != 2/2
+```
+
+- Menor, mayor, menor o igual, mayor o igual
+    + <
+    + >
+    + <=
+    + >=
+```{r}
+"a" <= "b" # ¿qué pasa aquí?
+"d" > "g"
+1 >= 2/2
+```   
+
+### Operadores aritméticos
+
+- Suma: +
+
+- Resta: -
+
+- Multiplicación: *
+
+- División: /
+
+- Potencia: ^
+
+- División entera: %%
+
+### Operadores lógicos
+
+Son usados para operaciones de álgebra booleana.
+
+- Sentencia lógica "Ó":
+    + | devuelve TRUE si alguno de los datos es TRUE
+    + | solo devuelve FALSE si ambos datos son FALSE
+
+```{r}
+1 | 2
+```
+
+
+- Sentencia lógica "Y"
+
+```{r}
+2 & 1
+```
+
+
+    + & solo devuelve TRUE si ambos datos es TRUE
+    + & devuelve FALSE si alguno de los datos es FALSE
+    
+- No es verdadero
+
+```{r}
+!1
+```
+- Es verdadero
+
+```{r}
+isTRUE(1)
+```
+Estos operadores se pueden combinar para expresar relaciones complejas.
+
+Por ejemplo, la negación FALSE Y FALSE dará como resultado TRUE.
+
+```{r}
+!(FALSE|FALSE)
+```
+
+
+### Operadores de asignación
+
+<-
+=
+
+
+
+### Orden de operaciones
+
+1- ^
+
+2- * /
+
+3- + -
+
+4-	< > <= >= == !=
+
+5-	!
+
+6-	&
+
+7-	|
+
+8- <-	
+
+## 2- Valores especiales en R
+
+* NA: valor faltante. La función *is,na()* puede ser utilizada para detectar NA.
+* NULL: como el conjunto vacío en matemáticas. Es especial porque no tiene *class()* y tiene *length()* cero
+* Inf: número infinito, aplica sólo a los vectores numéricos. 
+* NaN: no es un número. NaN técnicamente *is.numeric* generalmente resulta de operaciones como 0/0, Inf/Inf, etc. La función *is.nan()* puede usarse para detectar NaNs.
+
+```{r Ejercicio predecir el resultado}
+exp(-Inf)
+NA == NA
+NA == NULL
+NULL == NULL
+NA & FALSE
+```
+
+## 3- Vectores
+
+R crea vectores columnas con la función **c** y su traspuesta se puede obtener con al función **t**.
+
+```{r}
+# creamos el vector a
+a <- c(1,2,3)
+a # El vector a es un vector columna de 3 filas.
+length(a) # 3 filas de largo
+length(t(a)) # 3 columnas de largo, es indiferente si es vector fila o vector columna.
+```
+
+
+### 3.1 - Tipos de vectores
+
+Funciones para conocer el tipo de dato que contiene un vector:
+*is.numeric()*
+*is.logical()*
+*is.factor()*
+*is.character()*
+
+Funciones para transformar vectores:
+
+*as.numeric()*
+*as.logical()*
+*as.integer*
+*as.character*
+*as.factor*
+*as.ordered*
+
+La función class y la función typeof
+
+```{r vectores}
+# un vector numérico
+c(7, 7, 7.0, 7.0)
+class(c(pi, exp(1)))
+# ¿podemos transformar un vector a numérico si tiene al menos un valor como caracter? ¿cuál es la consecuencia?
+as.numeric(c("7", "7*", "7.0", "7,0"))
+# un vector de caracteres no numéricos
+class(c("abc", "def"))
+# un vector de enteros
+class(1:10)
+# un vector de tipo factor (para las variables categóricas)
+class(factor(c("abc", "def")))
+
+```
+
+```{r}
+typeof(c("abc", "def"))
+typeof(1:10)
+typeof(c(pi, exp(1))) 
+typeof(factor(c("abc", "def")))
+```
+
+El término doble refiere a la doble precisión, que es una forma estandar de los lenguajes de computación de bajo nivel, como es C, es la forma de aproximarse a los números reales.
+También el tipo de la clase *factor* es numérico
+
+### 3.3 - Factores
+
+La clase de vector factor nos permite trabajar con variables categóricas.
+
+Podemos recodificar factores.
+
+```{r recodificar factores}
+genero <- c(2, 1, 1, 2, 0, 1, 1)
+genero
+recode <- c(hombre = 1, mujer = 2)
+(genero <- factor(genero, levels = recode, labels = names(recode)))
+```
+¿qué pasó con el valor cero?
+
+Los niveles de los factores no tienen un orden natural. En modelos de regresión multivariados puede ser beneficioso fijar un nivel de referencia.
+
+```{r}
+genero <- relevel(genero, ref = "mujer")
+``` 
+
+Los niveles pueden ser también reordenados por otra variable
+
+```{r}
+edad <- c(27, 52, 65, 34, 89, 45, 68)
+(genero <- reorder(genero, edad))
+```
+
+### 3.4 - Fechas
+
+Para que R lea ciertos strings como fechas debemos utilizar la función correcta para leer el valor como fecha.
+
+Observar las diferencias entre los siguientes comandos
+```{r leer fechas}
+2003-02-27
+'2003-02-07'
+str('2003-02-07')
+as.Date('2003-02-07')
+class(as.Date('2003-02-07'))
+```
+
+Se pueden realizar operaciones con fechas a través de los operadores de mayor, menor e igual (entre otros)
+
+```{r operaciones con fechas}
+as.Date('2003-02-07') > as.Date('2002-02-07')
+as.Date('2003-02-07') - as.Date('2002-02-07')
+as.Date('2003-02-07') -36
+```
+
+fechas y hora del sistema (nuestro computador)
+
+```{r fechas sistema}
+Sys.timezone()
+
+Sys.Date()
+
+Sys.time()
+Sys.getlocale("LC_TIME")
+
+# con el paquete lubridate
+lubridate::now() # si no tiene el paquete lo instala
+```
+
+Convertir strings a fechas
+
+```{r convertir a fechas}
+#### convertir string a fechas
+x <- c('2003-02-07', '2002-02-07', '2004-02-07' )
+fechasX <- as.Date(x) # notar que el formato es YYYY-MM-DD
+
+y <- c('07/02/2000', '07/02/2001', '07/02/2002' ) # aqui tenemos otro formato
+fechasY <- as.Date(y, format = '%m/%d/%Y')
+fechasY
+```
+
+**Códigos de formateo de fechas**
+- %d -> dia
+- %m -> Mes numérico
+- %b -> Mes abreviado
+- %B -> Mes completo
+- %y -> año a dos dígitos
+- %Y -> año a 4 dígitos
+
+...El mágico paquete lubridate...
+
+```{r el paquete lubridate}
+## con el paquete lubridate
+library(lubridate)
+class(ymd(x))
+class(mdy(y))
+```
+
+### 3.5 En R podemos destacar las siguientes funciones básicas sobre vectores numéricos.
+
+- min: para obtener el mínimo de un vector.
+
+- max: para obtener el máximo de un vector.
+
+-length: para determinar la longitud de un vector.
+ 
+-range: para obtener el rango de valores de un vector, entrega el mínimo y máximo.
+
+- sum: entrega la suma de todos los elementos del vector.
+
+- prod: multiplica todos los elementos del vector.
+
+- which.min: nos entrega la posición en donde está el valor mínimo del vector.
+
+- which.max: nos da la posición del valor máximo del vector.
+
+- rev: invierte un vector.
+
+## 4- Matrices
+
+Crear una matriz 2x3
+
+```{r}
+matrix(1:12, nrow = 2, ncol = 3)
+```
+
+Unir vectores en una matriz, por fila y por columna
+
+```{r}
+# creamos vectores de largo 3
+vector_1 <- 1:4
+vector_2 <- 5:8
+vector_3 <- 9:12
+vector_4 <- 13:16
+# los unimos por fila en una matriz
+matriz1 <- rbind(vector_1, vector_2, vector_3, vector_4)
+matriz1
+# los unimos por columna en una matriz
+matriz2 <- cbind(vector_1, vector_2, vector_3, vector_4)
+matriz2
+```
+
+### Propiedades de las matrices
+
+
+#### Dimensiones
+
+```{r}
+dim(matriz2) # dimensión
+nrow(matriz2) # número de filas
+ncol(matriz2) # número de columnas
+```
+
+#### Notación
+
+```{r}
+matriz2[1,1]
+matriz2[1,]
+```
+
+
+#### Operaciones con sus elementos
+
+```{r}
+matriz2 + 100
+matriz2*100
+matriz2^3
+```
+
+#### Multiplicar matrices
+
+```{r}
+matriz2 %*% t(matriz2)
+```
+
+```{r}
+det(matriz2+234)
+```
+
+
+## 5- Data frames
+
+### Crear un dataframe
+
+```{r}
+  anio = c(2000, 2001, 2002,2003,2004)
+  roa = c('16009500/2202902', '16130290/1887926', '22689382/1437912', '25152363/2112528', '25107346/1899890')
+	pasivo = c(4438562, 4361452, 4960117, 5981713, 659444)
+data.frame(anio, roa, pasivo)
+# asignarle un nombre y que quede guardado en la memora como un objeto
+df1 <- balance_df <- data.frame(
+  anio = c(2000, 2001, 2002,2003,2004),
+  roa = c('16009500/2202902', '16130290/1887926', '22689382/1437912', '25152363/2112528', '25107346/1899890'),
+	pasivo = c(4438562, 4361452, 4960117, 5981713, 659444)
+	)
+df1
+```
+
+
+### Seleccionar columnas
+
+Para seleccionar la columna de un dataframe luego del nombre del mismo utilizamos el símbolo $ y colocamos el nombre de la columna
+
+```{r}
+df1$anio
+```
+
+### subconjuntos
+
+```{r}
+# quitando filas o columnas
+subconjunto1 <- df1[-1,]
+subconjunto1
+# imponiendo alguna condición
+subconjunto2 <- subset(df1, df1$anio > 2002)
+subconjunto2
+```
+
+
+
+## 6- Salvar archivos datos bases de R
+
+ RData
+```{r save RData}
+# generamos un vector y lo guardamos
+a <- 1:1000
+save(a, file="vectora.RData")
+# removemos el objeto
+rm(a)
+# levantamos un archivo .Rdata
+load(here::here("data/vectora.RData"))
+#print(a)
+```
+
+RDS
+```{r save rds}
+# generamos un vector y lo guardamos
+b <- 1:1000
+saveRDS(b, file = paste0(here::here(), "/data", "/", "vectorb.rds"))
+# removemos el objeto
+rm(b)
+# levantamos un archivo RDS
+b <- readRDS(here::here("data", "vectorb.rds"))
+head(b)
+```
+
