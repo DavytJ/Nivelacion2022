@@ -1,0 +1,327 @@
+---
+title: "Ejercicio Econometría"
+author: "Joselina Davyt-Colo"
+date: '2022-03-06'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(ggplot2)
+library(tibble)
+library(broom)
+library(margins)
+library(Ecdat)
+library(dplyr)
+library(tidyverse)
+library(mfx)
+library(foreign)
+library(here)
+library(ggeffects)
+library(effects)
+library(texreg)
+library(visreg)
+```
+
+
+## Ejercicio 2 (2019)
+
+Se pide estimar un modelo Probit para explicar la probabilidad de que una familia sea beneficiaria del Ingreso Ético Familiar (variable y21b) usando datos de la CASEN 2017.
+
+Entre las variables explicativas considere, al menos,
+
+-   los ingresos,
+
+-   la educación del jefe de núcleo,
+
+-   la condición de ruralidad,
+
+-   presencia de discapacitados, y
+
+-   la estructura del hogar (número de integrantes, niños, adultos mayores, mujeres, etc.).
+
+Use como unidad de análisis el "núcleo" que representaría a una familia (para generar un identificador de núcleo: egen id = group(folio nucleo)).
+
+Para la estimación considere sólo a las familias de los dos deciles de menores ingresos autónomos (condición dau\<=2) y no use factores de expansión.
+
+2.1) Calcule los efectos marginales del modelo e interprete los resultados. Usando las mismas variables explicativas, estime ahora un modelo Logit. Compare los efectos marginales de ambos modelos.
+
+### Datos
+
+En esta oportunidad no vamos a bajar los datos directamente de la página del observatorio del Ministerio de Desarrollo Social del gobierno de Chile (leer la url, bajan el zip, descomprimur y se guardar los datos).
+
+```{r cargar datos, echo=FALSE, warning=FALSE, message=FALSE}
+#casen_2017 <- foreign::read.dta(here::here("data/raw_data", "Casen 2017.dta"))
+#saveRDS(casen_2017, here::here("data/raw_data", "casen_2017.rds"))
+casen_2017 <- readRDS("~/Nivelacion2022/data/raw_data/casen_2017.rds")
+```
+
+### Probabilidad de que una familia sea beneficiaria del Ingreso Ético 
+
+Cuando queremos modelar una variable binaria se quiere interpretar y predecir la probabilidad de éxito en un rango 0-1 con una distribución binaria.
+
+### La distribución "detrás"
+
+#### Distribución
+
+```{r}
+prop.table(table(casen_2017$y21b))
+casen_2017$participa <- as.factor(ifelse(casen_2017$y21b == 1, 1, 0 ))
+prop.table(table(casen_2017$participa))
+```
+
+```{r}
+p <- prop.table(table(casen_2017$participa))[[2]]
+success_participa <- 1:100
+plot(success_participa, dbinom(success_participa,
+                               size=200,
+                               prob = p),
+     type = "h")
+```
+
+El eje x muestra el número de éxitos en 200 ensayos, mientras que el eje y muestra la probabilidad de obtener dichos números de éxitos en 200 ensayos.
+
+Entonces, podríamos pensar que cada vez que se determina si una familia obtiene o no el ingreso ético es un ensayo (cada año, cada semestre). Con la población de cada ensayo se cuentan los éxitos y los fracasos (quienes fueron beneficiarios y quienes no fueron beneficiarios) y se calcula la probabilidad de ser beneficiario del ingreso ético en Chile (o en alguna región.
+
+#### Función de enlace
+
+Opciones de modelos
+
+```{r}
+z = seq(-2,2,.05)
+zetas <- data.frame( z = z,
+                     lineal = z*0.3 + 0.5 ,
+                     probit = pnorm(z),
+                     logistico = plogis(z*pi/sqrt(3)),
+                     c_log_log = 1-exp(-exp(-0.1+z*pi/sqrt(6))))
+ggplot(zetas, aes(z, probit)) +
+  geom_line() +
+  geom_line(aes(y = logistico), linetype = "dotdash")+
+  geom_line(aes(y = c_log_log), linetype = "dotted") +
+  geom_line(aes(y = lineal), linetype = "dashed") +
+  geom_smooth(method = "nls", 
+              se = FALSE,
+              formula = y ~ exp(a+b*x),
+              method.args = list(start = list(b=0.1, a=2))
+              )
+
+```
+
+
+#### Ejercicio Variables
+
+Dependiente: que una familia sea beneficiario del ingreso ético familiar (y21b)
+
+Unidad de observación: núcleo
+
+Variables explicativas:
+
+-   los ingresos,
+
+-   la educación del jefe de núcleo,
+
+-   la condición de ruralidad,
+
+-   presencia de discapacitados, y
+
+-   la estructura del hogar (número de integrantes, niños, adultos mayores, mujeres, etc.).
+
+```{r variables, echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+variables <- c("hogar", "y21b", "folio", "nucleo", "pco1", "sexo", "edad", "ecivil", "pco2", "h10a", "h10b", "h10c", "h10d", "h10e", "h10f", "hacinamiento", "activ", "educ", "numper", "dau", "dautr", "ytotcorh", "zona", "esc", "s31a1", "expr", "expc", "activ")
+
+datos <- casen_2017 %>% dplyr:: select(variables)
+
+datos$discapacitado <- ifelse(datos$h10a == "Sí, mucha dificultad" | datos$h10b == "Sí, mucha dificultad"| datos$h10c == "Sí, mucha dificultad" | datos$h10d == "Sí, mucha dificultad"| datos$h10e == "Sí, mucha dificultad"| datos$h10f == "Sí, mucha dificultad", 1, 0 )
+
+datos <- datos %>% mutate(educ_jef = as.factor(ifelse(pco2 == "Jefe(a) de núcleo", educ, 0))) %>% mutate(esc_jefe = ifelse(pco2 == "Jefe(a) de núcleo", esc, 0))
+
+datos$disc_2 <- ifelse(datos$s31a1 == "No sabe/no responde" | datos$s31a1 == "No tiene ninguna condición de larga duración", 0, 1)
+
+df <- datos %>% 
+  mutate(ninio = edad < 18) %>% 
+  mutate(adulto_mayor = edad > 65) %>% 
+  group_by(folio, nucleo) %>% 
+  summarise(total_disc =sum(disc_2), total_nin = sum(ninio), tot_adul = sum(adulto_mayor), tot_muj = sum(sexo == "Mujer"), y21b = first(y21b), hacinamiento = first(hacinamiento), dau = first(dau), dautr = first(dautr), zona = first(zona),
+            educ_jef = first(educ_jef), ytotcorh = first(ytotcorh),
+            numper = first(numper), esc_jefe = first(esc_jefe), expc = first(expc), expr = first(expr))
+
+df$participa <- as.factor(ifelse(df$y21b == 1, 1, 0 ))
+```
+
+Para ubicarnos en la tabla de datos se presentan las primeras 6 observaciones de las variables.
+
+```{r head df, echo=FALSE, warning=FALSE, message=FALSE}
+head(df[,1:7])
+head(df[,8:15])
+head(df[,16:17])
+```
+
+#### Intuición
+
+```{r}
+grafico <- df %>% 
+  mutate(participa = as.numeric(participa) -1) %>%
+ggplot(aes(as.numeric(total_nin), participa)) +
+  geom_jitter(width = 0, height = 0.05, alpha = 0.5) + 
+  theme_bw()
+grafico + 
+  geom_smooth(method = "lm", colour = "blue") +
+  geom_smooth(method = "glm", colour = "red", method.args = list(family = "binomial"), add = T)
+  
+```
+
+#### Modelo Probit
+
+Considere sólo a las familias de los dos deciles de menores ingresos autónomos.
+
+```{r modelo probit glm,  echo=FALSE, warning=FALSE, message=FALSE}
+modelo_probit <- glm(participa ~ ytotcorh + zona + esc_jefe +total_disc + tot_muj +  tot_adul + total_nin + numper, data = subset(df, df$dau == "I" | df$dau == "II"), family = binomial(link = "probit"))
+summary(modelo_probit)
+
+# library(survey)
+# datos_svy <- subset(df, df$dau == "I" | df$dau == "II")
+# des <- svydesign(~1, weights=~expc, data=datos_svy)
+# probit_exp <- svyglm(participa ~ ytotcorh + zona + esc_jefe +total_disc + tot_muj + tot_adul + total_nin + numper, design = des, family=binomial(link= "probit"))
+# summary(probit_exp)
+```
+
+En resumen:
+
+```{r resumen probit, echo=FALSE, warning=FALSE, message=FALSE}
+broom::tidy(modelo_probit)
+```
+
+##### Efectos marginales Modelo Probit
+
+En un modelo de regresión en general, los $\beta$ son la solución a la ecuación diferencial. En el modelo logit y probit, que son modelos no lineales, debido a su presunta estructura de modelo, el efecto marginal también debe tener en cuenta el cambio en la función de densidad respectivo con respecto a la media, o:
+
+$$\frac{\partial y}{\partial x} = \beta*\frac{\partial \Phi(x'\beta)}{\partial x'\beta}$$
+
+```{r mg effects probit, echo=FALSE, warning=FALSE, message=FALSE}
+mean(dnorm(predict(modelo_probit, type = "link"))) -> pdf
+marginal.effects <- pdf*coef(modelo_probit)
+marginal.effects
+
+# effects_probit_participation = margins(modelo_probit)
+# print(effects_probit_participation)
+# mean(dnorm(predict(modelo_probit, type = "link"))) -> pdf2
+# marginal.effects <- pdf2*coef(modelo_probit)
+# marginal.effects
+```
+
+Otra manera es seguir al paquete mfx que directamente estima el modelo mostrando los efectos marginales a través de la función probitmfx.
+
+```{r probitmfx, echo=FALSE, warning=FALSE, message=FALSE}
+df$participa <- as.logical(ifelse(df$y21b == 1, 1, 0 ))
+mfx_probit <- probitmfx(participa ~ ytotcorh + zona + esc_jefe +total_disc + tot_muj +  tot_adul + total_nin + numper, data = subset(df, df$dau == "I" | df$dau == "II"))
+mfx_probit
+```
+
+-   Variables que resultaron significativas
+
+-   ingreso total del hogar. Un aumento en 1 peso de los ingresos totales del hogar afecta en un aumento de aprox. 0.00000%1 a la probabilidad de que una familia sea beneficiaria del programa del Ingreso Ético familiar (ceteris paribus).
+
+-   ruralidad. Vivir en una zona urbana aumenta en un 0.4% la probabilidad de que una familia sea beneficiaria del programa del Ingreso Ético familiar (ceteris paribus)
+
+-   años de escolaridad del jefe del hogar. Un año más de escolaridad del jefe del hogar disminuye en un -0.1% la probabilidad de que una familia sea beneficiaria del programa del Ingreso Ético familiar (ceteris paribus)
+
+-   total de discapacitados en el hogar. Una persona más discapacitada aumenta en un 0.2% la probabilidad de que una familia sea beneficiaria del programa del Ingreso Ético familiar (ceteris paribus)
+
+-   total de niños en el hogar. Un niño más en el hogar aumenta en un 1% la probabilidad de que una familia sea beneficiaria del programa del Ingreso Ético familiar (ceteris paribus)
+
+-   Variables que no resultaron significativas:
+
+-   total de mujeres en el hogar
+
+-   número de personas en el hogar
+
+-   número de adultos mayores en el hogar
+
+#### Modelo Logit y sus efectos marginales
+
+Vamos a estimar el modelo logit directamente con la función logitmfx que despliega el resultado en términos de efectos marginales.
+
+El efecto marginal expresa el cambio de la variable dependiente provocado por un cambio unitario en una de las independientes manteniendo el resto constante
+
+```{r modelo logit, echo=FALSE, message=FALSE, warning=FALSE}
+mfx_logit <- mfx::logitmfx(participa ~ ytotcorh + zona + esc_jefe +total_disc + tot_muj +  tot_adul + total_nin + numper, data = subset(df, df$dau == "I" | df$dau == "II"))
+mfx_logit
+```
+
+-   Variables que resultaron significativas
+-   ingreso total del hogar. Un aumento en 1 peso de los ingresos totales del hogar afecta en un aumento de 0.00000%1 a la probabilidad de que una familia sea beneficiaria del programa del Ingreso Ético familiar (ceteris paribus).
+-   ruralidad. Vivir en una zona urbana aumenta en un 0.3% la probabilidad de que una familia sea beneficiaria del programa del Ingreso Ético familiar (ceteris paribus)
+-   años de escolaridad del jefe del hogar. Un año más de escolaridad del jefe del hogar disminuye en un 0-1% la probabilidad de que una familia sea beneficiaria del programa del Ingreso Ético familiar (ceteris paribus)
+-   total de discapacitados en el hogar. Una persona más discapacitada aumenta en un 0.2% la probabilidad de que una familia sea beneficiaria del programa del Ingreso Ético familiar (ceteris paribus)
+-   total de niños en el hogar. Un niño más en el hogar aumenta en un 1% la probabilidad de que una familia sea beneficiaria del programa del Ingreso Ético familiar (ceteris paribus)
+
+\*Variables que no resultaron significativas + total de mujeres en el hogar + número de personas en el hogar + número de adultos mayores en el hogar
+
+#### Probit vs logit
+
+Los efectos marginales de los modelos probit y logit son prácticamente iguales como se muestra en la tabla a continuación.
+
+```{r probit vs logit, echo=FALSE, warning=FALSE, message=FALSE}
+screenreg(list(mfx_probit, mfx_logit), custom.model.names = c("Probit", "Logit"), digits = 8, stars = c(0.001, 
+    0.01, 0.05, 0.1))
+# log.marg<-coef(mfx_logit)*mean(dlogis(predict(mfx_logit)), na.rm=T)
+# 
+# plot(log.marg[-1], ylab="Marginal Effects", axes=T,xaxt="n", main="Efectos marginales Prob. familia beneficiaria IEF, estimación Probit", ylim=c(-.3, .3))
+# axis(side=1, at=1:10, labels=F)
+# text(x=1:10, y=-.4,  srt = 45, pos = 1, xpd = TRUE,
+#      labels = c( "Hispanic", "NH asian","NH black" ,"NH other","HS",
+#                  "NO HS","some coll", "male", "age", "age^2" ))
+# points(prob.marg[-1], col=2)
+# abline(h=0, col=3)
+# legend("topleft", legend=c("Logit Model", "Probit Model"), col=c("black", "red"),pch=1)
+```
+
+#### Plots
+
+```{r}
+ef_mp <- ggeffects::ggpredict(modelo_probit, terms = "ytotcorh")
+
+ef_mp %>% ggplot(aes(x, predicted)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high))
+```
+
+
+```{r}
+pred1 <- ggeffects::ggpredict(modelo_probit, terms = "total_nin")  # Numerical 
+plot(pred1)
+pred2 <- ggeffects::ggpredict(modelo_probit, terms = "zona")
+plot(pred2)
+
+pred1e <- effects::effect("total_nin", modelo_probit)
+plot(pred1e)
+pred2e <- effects::effect("zona", modelo_probit)
+plot(pred2e)
+```
+
+
+
+
+
+```{r}
+df2 <- subset(df, df$dau == "I" | df$dau == "II")
+modelo_probit2 <- glm(participa ~ ytotcorh + zona + esc_jefe +total_disc + tot_muj +  tot_adul + total_nin + numper, data = df2, family = binomial(link = "probit"))
+summary(modelo_probit)
+visreg(modelo_probit2, "total_nin", by="zona", rug=2,
+       gg = TRUE, 
+       scale="response") +
+  labs(y = "Prob(Income Recipient)", 
+       x = "Number of Children",
+       title = "Relationship of number of children and ethical income recipient",
+       subtitle = "controlling for income, zone, and education",
+       caption = "source: National Socioeconomic Characterization Survey, Casen 2017")
+```
+
+```{r}
+visreg(modelo_probit2, "total_nin", by="zona", rug=2, scale="response", overlay=TRUE)
+```
